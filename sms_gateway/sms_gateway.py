@@ -30,8 +30,8 @@ def read_incoming_sms():
 
     new_messages = []
     for msg in messages:
-        sms_id = msg["id"]
-        if sms_id not in processed_ids:
+        sms_id = msg.get("id") or msg.get("thread_id") or msg.get("received")  # fallback
+        if sms_id and sms_id not in processed_ids:
             new_messages.append(msg)
             processed_ids.add(sms_id)
 
@@ -39,6 +39,7 @@ def read_incoming_sms():
         save_processed()
 
     return new_messages
+
 
 
 def send_to_backend(msg):
