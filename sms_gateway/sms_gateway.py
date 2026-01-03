@@ -23,14 +23,26 @@ def save_processed():
 
 
 def read_incoming_sms():
-    """Reads unread SMS using Termux API"""
-    cmd = ["termux-sms-list", "-l", "20"]  # get last 20 messages
+    """Reads unread SMS using Termux API safely"""
+    cmd = ["termux-sms-list", "-l", "20"]
     result = subprocess.run(cmd, capture_output=True, text=True)
-    messages = json.loads(result.stdout)
+
+    raw = result.stdout.strip()
+
+    # 🔒 Guard: empty or invalid output
+    if not raw or not raw.startswith("["):
+        print("[WARN] termux-sms-list returned non-JSON output")
+        return []
+
+    try:
+        messages = json.loads(raw)
+    except json.JSONDecodeError:
+        print("[WARN] Failed to decode SMS JSON, skipping this cycle")
+        return []
 
     new_messages = []
     for msg in messages:
-        sms_id = msg.get("id") or msg.get("thread_id") or msg.get("received")  # fallback
+        sms_id = msg.get("id") or msg.get("thread_id") or msg.get("received")
         if sms_id and sms_id not in processed_ids:
             new_messages.append(msg)
             processed_ids.add(sms_id)
@@ -39,6 +51,7 @@ def read_incoming_sms():
         save_processed()
 
     return new_messages
+
 
 
 
